@@ -1,8 +1,9 @@
 {
   "name": "inwebo/csv-reader",
-  "description": "Read, iterate, filter & sanitize lines of a csv file with ease",
-  "keywords": ["doctrine", "csv", "reader"],
+  "description": "This PHP class, provides a simple yet powerful way to read and process CSV files. Built as an extension of PHP's SplFileObject, it offers advanced features like column name mapping, data filtering, and sanitization to streamline your CSV processing tasks.",
+  "keywords": ["csv-parser", "csv-import", "data-processing", "etl", "file-reader", "spreadsheet", "csv", "reader", "php", "filter", "spl", "sanitize"],
   "homepage": "https://github.com/inwebo/csv-reader",
+  "version": "1.0.0",
   "authors": [
     {
       "name": "Inwebo Veritas",
@@ -13,14 +14,15 @@
   ],
   "type": "library",
   "require": {
-    "php": "^8.3"
+    "php": "^8.1"
   },
   "require-dev": {
     "phpunit/phpunit": "^12.0",
     "friendsofphp/php-cs-fixer": "^3.72",
-    "phpstan/phpstan": "^2.1"
+    "phpstan/phpstan": "^2.1",
+    "phpmd/phpmd": "^2.15"
   },
-  "license": "GPL-3.0-or-later",
+  "license": "MIT",
   "autoload": {
     "psr-4": {
       "Inwebo\\Csv\\": "src/"
@@ -33,8 +35,9 @@
   },
   "scripts": {
     "php-cs-fixer": "vendor/bin/php-cs-fixer --allow-risky=yes fix",
-    "phpunit": "vendor/bin/phpunit --testdox",
-    "phpstan": "vendor/bin/phpstan analyse src -c phpstan.neon"
+    "phpunit": "XDEBUG_MODE=coverage vendor/bin/phpunit --testdox --display-all-issues",
+    "phpstan": "vendor/bin/phpstan analyse src -c phpstan.neon",
+    "phpmd": "vendor/bin/phpmd ./src html ./phpmd.rulesets.xml --reportfile phpmd-report.html"
   },
   "minimum-stability": "stable"
 }
