@@ -1,0 +1,40 @@
+{
+  "name": "inwebo/csv-reader",
+  "description": "Read, iterate, filter & sanitize lines of a csv file with ease",
+  "keywords": ["doctrine", "csv", "reader"],
+  "homepage": "https://github.com/inwebo/csv-reader",
+  "authors": [
+    {
+      "name": "Inwebo Veritas",
+      "email": "github@inwebo.net",
+      "homepage": "https://www.inwebo.net",
+      "role": "Developer"
+    }
+  ],
+  "type": "library",
+  "require": {
+    "php": "^8.3"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^12.0",
+    "friendsofphp/php-cs-fixer": "^3.72",
+    "phpstan/phpstan": "^2.1"
+  },
+  "license": "GPL-3.0-or-later",
+  "autoload": {
+    "psr-4": {
+      "Inwebo\\Csv\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Inwebo\\CSV\\Reader\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "php-cs-fixer": "vendor/bin/php-cs-fixer --allow-risky=yes fix",
+    "phpunit": "vendor/bin/phpunit --testdox",
+    "phpstan": "vendor/bin/phpstan analyse src -c phpstan.neon"
+  },
+  "minimum-stability": "stable"
+}
