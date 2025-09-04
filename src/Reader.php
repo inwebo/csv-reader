@@ -16,14 +16,14 @@ class Reader extends \SplFileObject
     private array $colsName = [];
 
     /**
-     * @phpstan-var (callable(array<int|string, string> $line):bool)[]
+     * @phpstan-var (callable(array<int|string, ?string> $line):bool)[]
      *
      * @var array<int, callable>
      */
     private array $filters = [];
 
     /**
-     * @phpstan-var (callable(array<int|string, string> $line):bool)[]
+     * @phpstan-var (callable(array<int|string, ?string> $line):bool)[]
      *
      * @var array<int, callable>
      */
@@ -67,11 +67,45 @@ class Reader extends \SplFileObject
     }
 
     /**
+     * Allows you to modify or define the name of a column using its numerical index.
+     * This method is useful for CSV files without a header row,
+     * where you want to assign column names to process the data as an associative array.
+     */
+    public function mapIndexToColName(int $index, string $colName): static
+    {
+        $this->colsName[$index] = $colName;
+
+        return $this;
+    }
+
+    /**
+     * Converts an indexed array of data into an associative array using the column names defined in the $colsName property.
+     * If an index does not have a corresponding column name, its value is omitted from the resulting associative array.
+     *
+     * @param array<int, string> $line
+     *
+     * @return array<int|string, ?string>
+     */
+    protected function mapLine(array $line): array
+    {
+        if (empty($this->colsName)) {
+            return $line;
+        }
+
+        $buffer = [];
+        foreach ($this->colsName as $index => $colName) {
+            $buffer[$colName] = $line[$index] ?? null;
+        }
+
+        return $buffer;
+    }
+
+    /**
      * Description: Reads a specific line from the CSV file.
      * You can specify a line number with the $offset or read the current line if $offset is null.
      * It applies all defined sanitizers and filters before returning the line.
      *
-     * @return array<int|string, string>|false false at EOF
+     * @return array<int|string, ?string>|false false at EOF
      */
     public function lineAt(?int $offset = null): array|false
     {
@@ -80,15 +114,18 @@ class Reader extends \SplFileObject
         }
 
         /** @var array<int, string>|false $line */
-        $line = $this->fgetcsv(escape: '\\');
-
+        $line = ($this->hasColName) ? $this->fgetcsv(escape: '\\') : $this->current();
         if (false !== $line) {
-            $line = ($this->hasColName) ? array_combine($this->colsName, $line) : $line;
+            $line = ($this->hasColName) ?
+                array_combine($this->colsName, $line) :
+                $this->mapLine($line)
+            ;
 
-            $this->sanitize($line);
             $validatedLine = $this->filter($line);
 
             if (null !== $validatedLine) {
+                $this->sanitize($validatedLine);
+
                 return $validatedLine;
             } else {
                 return false;
@@ -113,9 +150,9 @@ class Reader extends \SplFileObject
     /**
      * Applies all registered sanitizer functions to the given line. This method is used internally by lineAt and modifies the $line array in place.
      *
-     * @param array<int|string, string> $line
+     * @param array<int|string, ?string> $line
      */
-    public function sanitize(array &$line): void
+    protected function sanitize(array &$line): void
     {
         if (false === empty($this->sanitizers)) {
             foreach ($this->sanitizers as $sanitizer) {
@@ -128,11 +165,11 @@ class Reader extends \SplFileObject
      * Applies all registered filter functions to the given line.
      * If any of the filter functions returns false, the line is considered invalid, and the method returns null.
      *
-     * @param array<int|string, string> $line
+     * @param array<int|string, ?string> $line
      *
-     * @return array<int|string, string>|null
+     * @return array<int|string, ?string>|null
      */
-    public function filter(array $line): ?array
+    protected function filter(array $line): ?array
     {
         $isValid = true;
 

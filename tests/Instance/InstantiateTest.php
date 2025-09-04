@@ -10,7 +10,8 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Reader::class)]
-#[Group('Instantiate')]
+#[Group('csv')]
+#[Group('instantiate')]
 class InstantiateTest extends TestCase
 {
     public function testInvalidInstantiate(): void

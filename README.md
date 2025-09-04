@@ -70,6 +70,28 @@ foreach ($csvFile->lines() as $line) {
 
 -----
 
+#### Manual Column Mapping
+
+For files without a header, you can manually define column names using the `mapIndexToColName()` method. This allows you to treat the data as an associative array even without a header row.
+
+```php
+use Inwebo\Csv\Reader;
+
+$csvFile = new Reader('path/to/your/file.csv', hasColName: false);
+
+$csvFile
+    ->mapIndexToColName(0, 'id')
+    ->mapIndexToColName(1, 'name')
+    ->mapIndexToColName(2, 'email');
+
+foreach ($csvFile->lines() as $line) {
+    // $line will be an associative array, e.g., ['id' => '1', 'name' => 'John Doe', 'email' => 'john@example.com']
+    print_r($line);
+}
+```
+
+-----
+
 ### Advanced Usage: Sanitizers and Filters
 
 You can add multiple sanitizers and filters to your `Reader` instance. They are executed sequentially in the order they are added.

@@ -10,8 +10,9 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Reader::class)]
-#[Group('Instantiate')]
-class ReadTest extends TestCase
+#[Group('csv')]
+#[Group('with-header')]
+class ReadWithHeaderTest extends TestCase
 {
     private ?Reader $reader;
 
@@ -96,6 +97,9 @@ class ReadTest extends TestCase
         $count = 0;
 
         foreach ($this->reader->lines() as $line) {
+            $this->assertIsInt($line['Id']);
+            $this->assertTrue($line['Id'] % 2 === 0);
+
             ++$count;
         }
 

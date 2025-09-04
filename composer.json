@@ -1,7 +1,7 @@
 {
   "name": "inwebo/csv-reader",
-  "description": "Read, iterate, filter & sanitize lines of a csv file with ease",
-  "keywords": ["doctrine", "csv", "reader"],
+  "description": "This PHP class, provides a simple yet powerful way to read and process CSV files. Built as an extension of PHP's SplFileObject, it offers advanced features like column name mapping, data filtering, and sanitization to streamline your CSV processing tasks.",
+  "keywords": ["csv", "reader", "php", "filter", "spl", "sanitize"],
   "homepage": "https://github.com/inwebo/csv-reader",
   "authors": [
     {
