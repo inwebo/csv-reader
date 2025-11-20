@@ -45,9 +45,9 @@ To get started, simply instantiate the `Reader` class with the path to your CSV 
 ```php
 use Inwebo\Csv\Reader;
 
-$csvFile = new Reader('path/to/your/file.csv');
+$reader = new Reader('path/to/your/file.csv');
 
-foreach ($csvFile->lines() as $line) {
+foreach ($reader->lines() as $line) {
     // $line will be an associative array, e.g., ['column_name' => 'value']
     print_r($line);
 }
@@ -60,9 +60,9 @@ If your CSV file does not have a header row, you can disable the column name map
 ```php
 use Inwebo\Csv\Reader;
 
-$csvFile = new Reader('path/to/your/file.csv', hasColName: false);
+$reader = new Reader('path/to/your/file.csv', hasColName: false);
 
-foreach ($csvFile->lines() as $line) {
+foreach ($reader->lines() as $line) {
     // $line will be a numeric array, e.g., ['value1', 'value2']
     print_r($line);
 }
@@ -77,14 +77,14 @@ For files without a header, you can manually define column names using the `mapI
 ```php
 use Inwebo\Csv\Reader;
 
-$csvFile = new Reader('path/to/your/file.csv', hasColName: false);
+$reader = new Reader('path/to/your/file.csv', hasColName: false);
 
-$csvFile
+$reader
     ->mapIndexToColName(0, 'id')
     ->mapIndexToColName(1, 'name')
     ->mapIndexToColName(2, 'email');
 
-foreach ($csvFile->lines() as $line) {
+foreach ($reader->lines() as $line) {
     // $line will be an associative array, e.g., ['id' => '1', 'name' => 'John Doe', 'email' => 'john@example.com']
     print_r($line);
 }
@@ -103,15 +103,15 @@ Sanitizers are used to modify the data. The callback receives the line array by 
 ```php
 use Inwebo\Csv\Reader;
 
-$csvFile = new Reader('path/to/your/file.csv');
+$reader = new Reader('path/to/your/file.csv');
 
 // Add a sanitizer to trim whitespace from all values
-$csvFile->addSanitizer(function (array &$line) {
+$reader->addSanitizer(function (array &$line) {
     $line = array_map('trim', $line);
 });
 
 // Add another sanitizer to convert a specific column to an integer
-$csvFile->addSanitizer(function (array &$line) {
+$reader->addSanitizer(function (array &$line) {
     if (isset($line['age'])) {
         $line['age'] = (int) $line['age'];
     }
@@ -125,15 +125,15 @@ Filters are used to validate and exclude entire rows. If a filter returns `false
 ```php
 use Inwebo\Csv\Reader;
 
-$csvFile = new Reader('path/to/your/file.csv');
+$reader = new Reader('path/to/your/file.csv');
 
 // Add a filter to only include rows where the 'status' column is 'active'
-$csvFile->addFilter(function (array $line) {
+$reader->addFilter(function (array $line) {
     return isset($line['status']) && $line['status'] === 'active';
 });
 
 // Add another filter to only include users older than 25
-$csvFile->addFilter(function (array $line) {
+$reader->addFilter(function (array $line) {
     return isset($line['age']) && (int) $line['age'] > 25;
 });
 ```
@@ -141,7 +141,7 @@ $csvFile->addFilter(function (array $line) {
 With both sanitizers and filters in place, the processing loop becomes a clean, declarative statement of what you want to achieve.
 
 ```php
-foreach ($csvFile->lines() as $validAndSanitizedLine) {
+foreach ($reader->lines() as $validAndSanitizedLine) {
     // This line has passed all your checks and is ready to be used
     print_r($validAndSanitizedLine);
 }
