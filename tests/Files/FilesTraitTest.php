@@ -1,0 +1,35 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Inwebo\CSV\Reader\Tests\Files;
+
+use Inwebo\CSV\Reader\Tests\Fixtures\Model\FilesTrait;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\TestCase;
+
+#[CoversClass(FilesTrait::class)]
+class FilesTraitTest extends TestCase
+{
+    use FilesTrait;
+
+    public function testGetFilteredFile(): void
+    {
+        $this->assertFileExists($this->getFilteredFile());
+    }
+
+    public function testGetEmptyFile(): void
+    {
+        $this->assertFileExists($this->getEmptyFile());
+    }
+
+    public function testGetWithHeaderFile(): void
+    {
+        $this->assertFileExists($this->getWithHeaderFile());
+    }
+
+    public function testGetWithoutHeaderFile(): void
+    {
+        $this->assertFileExists($this->getWithoutHeaderFile());
+    }
+}

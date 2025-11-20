@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Inwebo\CSV\Reader\Tests\Iterate;
 
 use Inwebo\Csv\Reader;
+use Inwebo\CSV\Reader\Tests\Fixtures\Model\FilesTrait;
+use Inwebo\CSV\Reader\Tests\Fixtures\Model\HasReaderTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
@@ -14,11 +16,14 @@ use PHPUnit\Framework\TestCase;
 #[Group('with-header')]
 class ReadWithHeaderTest extends TestCase
 {
+    use FilesTrait;
+    use HasReaderTrait;
     private ?Reader $reader;
 
     public function setUp(): void
     {
-        $this->reader = new Reader(WITH_HEADER, hasColName: true); /* @phpstan-ignore */
+        $this->reader = new Reader($this->getWithHeaderFile(), hasHeader: true);
+        $this->assertTrue($this->getReader()->hasHeader());
     }
 
     public function tearDown(): void
@@ -28,16 +33,16 @@ class ReadWithHeaderTest extends TestCase
 
     public function testColName(): void
     {
-        $this->assertIsArray($this->reader->getColsName());
-        $this->assertEquals('Id', $this->reader->getColsName()[0]);
-        $this->assertEquals('Firstname', $this->reader->getColsName()[1]);
-        $this->assertEquals('Lastname', $this->reader->getColsName()[2]);
-        $this->assertEquals('Email', $this->reader->getColsName()[3]);
+        $this->assertIsArray($this->getReader()->getHeader());
+        $this->assertEquals('Id', $this->getReader()->getHeader()[0]);
+        $this->assertEquals('Firstname', $this->getReader()->getHeader()[1]);
+        $this->assertEquals('Lastname', $this->getReader()->getHeader()[2]);
+        $this->assertEquals('Email', $this->getReader()->getHeader()[3]);
     }
 
     public function testAt(): void
     {
-        $headers = $this->reader->lineAt(0);
+        $headers = $this->getReader()->lineAt(0);
         $this->assertIsArray($headers);
         $this->assertEquals(1, $headers['Id']);
         $this->assertEquals('Charles', $headers['Firstname']);
@@ -47,16 +52,16 @@ class ReadWithHeaderTest extends TestCase
 
     public function testInvalidAt(): void
     {
-        $line = $this->reader->lineAt(100);
+        $line = $this->getReader()->lineAt(100);
 
         $this->assertFalse($line);
     }
 
     public function testCount(): void
     {
-        $this->assertIsIterable($this->reader->lines());
+        $this->assertIsIterable($this->getReader()->lines());
 
-        $lines = $this->reader->lines();
+        $lines = $this->getReader()->lines();
 
         $i = 0;
 
@@ -74,9 +79,9 @@ class ReadWithHeaderTest extends TestCase
             $line['Id'] = (int) $line['Id'];
         };
 
-        $this->reader->addSanitizer($sanitize);
+        $this->getReader()->addSanitizer($sanitize);
 
-        $line = $this->reader->lineAt(0);
+        $line = $this->getReader()->lineAt(0);
         $this->assertIsArray($line);
         $this->assertEquals(1, $line['Id']);
     }
@@ -91,12 +96,12 @@ class ReadWithHeaderTest extends TestCase
             return $line['Id'] % 2 === 0;
         };
 
-        $this->reader->addSanitizer($sanitize);
-        $this->reader->addFilter($filter);
+        $this->getReader()->addSanitizer($sanitize);
+        $this->getReader()->addFilter($filter);
 
         $count = 0;
 
-        foreach ($this->reader->lines() as $line) {
+        foreach ($this->getReader()->lines() as $line) {
             $this->assertIsInt($line['Id']);
             $this->assertTrue($line['Id'] % 2 === 0);
 

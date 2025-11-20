@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Inwebo\CSV\Reader\Tests\Instance;
 
 use Inwebo\Csv\Reader;
+use Inwebo\CSV\Reader\Tests\Fixtures\Model\FilesTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
@@ -14,6 +15,8 @@ use PHPUnit\Framework\TestCase;
 #[Group('instantiate')]
 class InstantiateTest extends TestCase
 {
+    use FilesTrait;
+
     public function testInvalidInstantiate(): void
     {
         $this->expectException(\RuntimeException::class);
@@ -22,27 +25,23 @@ class InstantiateTest extends TestCase
 
     public function testValidWithHeaderInstantiate(): void
     {
-        $iterator = new Reader(WITH_HEADER);
-        $this->assertInstanceOf(Reader::class, $iterator);
+        $reader = new Reader($this->getWithHeaderFile());
+        $this->assertInstanceOf(Reader::class, $reader);
     }
 
     public function testValidWithoutHeaderInstantiate(): void
     {
-        $iterator = (new Reader(WITHOUT_HEADER, hasColName: false));
+        $iterator = (new Reader($this->getWithoutHeaderFile(), hasHeader: false));
         $this->assertInstanceOf(Reader::class, $iterator);
     }
 
     public function testEmpty(): void
     {
-        $iterator = (new Reader(EMPTY_FILE, hasColName: false));
-        $this->assertInstanceOf(Reader::class, $iterator);
+        $reader = (new Reader($this->getEmptyFile(), hasHeader: false));
+        $this->assertInstanceOf(Reader::class, $reader);
 
-        $i = 0;
+        $lines = iterator_to_array($reader->lines());
 
-        foreach ($iterator->lines() as $item) {
-            ++$i;
-        }
-
-        $this->assertEquals(0, $i);
+        $this->assertCount(0, $lines);
     }
 }

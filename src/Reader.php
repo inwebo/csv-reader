@@ -13,7 +13,7 @@ namespace Inwebo\Csv;
 class Reader extends \SplFileObject
 {
     /** @var array<int, string> */
-    private array $colsName = [];
+    private array $header = [];
 
     /**
      * @phpstan-var (callable(array<int|string, ?string> $line):bool)[]
@@ -34,36 +34,50 @@ class Reader extends \SplFileObject
      * It sets the file's flags to \SplFileObject::READ_CSV | \SplFileObject::SKIP_EMPTY | \SplFileObject::DROP_NEW_LINE | \SplFileObject::READ_AHEAD for proper CSV parsing.
      * If the $hasColName parameter is true, it reads the first row of the file to use as column headers for subsequent rows.
      *
-     * @param ?resource $context
+     * @param string   $filename       The file to open
+     * @param string   $mode           [optional] The mode in which to open the file. See {@see fopen} for a list of allowed modes.
+     * @param bool     $useIncludePath [optional] Whether to search in the include_path for filename
+     * @param resource $context        [optional] A valid context resource created with {@see stream_context_create}
+     * @param bool     $hasHeader      [optional] parameter is true, it reads the first row of the file to use as column headers for subsequent rows
+     *
+     * @throws \LogicException   When the filename is a directory
+     * @throws \RuntimeException When the filename cannot be opened
+     *
+     * @see SplFileObject
      */
     public function __construct(
         string $filename,
         string $mode = 'r',
         bool $useIncludePath = false,
         mixed $context = null,
-        private readonly bool $hasColName = true,
+        private readonly bool $hasHeader = true,
     ) {
         parent::__construct($filename, $mode, $useIncludePath, $context);
         $this->setFlags(\SplFileObject::READ_CSV | \SplFileObject::SKIP_EMPTY | \SplFileObject::DROP_NEW_LINE | \SplFileObject::READ_AHEAD);
 
-        if (true === $this->hasColName) {
+        if (true === $this->hasHeader) {
             /** @var array<int, string>|false|string $colName */
             $colName = $this->current();
 
             if (false !== $colName && !is_string($colName)) {
-                $this->colsName = $colName;
+                $this->header = $colName;
             }
         }
     }
 
+    public function hasHeader(): bool
+    {
+        return $this->hasHeader;
+    }
+
     /**
-     * Returns the array of column headers. This array is populated during the constructor if $hasColName is true.
+     * Returns the array of column headers. This array is populated during the constructor if $hasHeader is true.
      *
      * @return array<int, string>
      */
-    public function getColsName(): array
+    public function getHeader(): array
     {
-        return $this->colsName;
+        return $this->header;
     }
 
     /**
@@ -73,7 +87,7 @@ class Reader extends \SplFileObject
      */
     public function mapIndexToColName(int $index, string $colName): static
     {
-        $this->colsName[$index] = $colName;
+        $this->header[$index] = $colName;
 
         return $this;
     }
@@ -88,12 +102,12 @@ class Reader extends \SplFileObject
      */
     protected function mapLine(array $line): array
     {
-        if (empty($this->colsName)) {
+        if (empty($this->header)) {
             return $line;
         }
 
         $buffer = [];
-        foreach ($this->colsName as $index => $colName) {
+        foreach ($this->header as $index => $colName) {
             $buffer[$colName] = $line[$index] ?? null;
         }
 
@@ -114,19 +128,19 @@ class Reader extends \SplFileObject
         }
 
         /** @var array<int, string>|false $line */
-        $line = ($this->hasColName) ? $this->fgetcsv(escape: '\\') : $this->current();
+        $line = ($this->hasHeader) ? $this->fgetcsv(escape: '\\') : $this->current();
         if (false !== $line) {
-            $line = ($this->hasColName) ?
-                array_combine($this->colsName, $line) :
+            $line = ($this->hasHeader) ?
+                array_combine($this->header, $line) :
                 $this->mapLine($line)
             ;
 
-            $validatedLine = $this->filter($line);
+            $filteredLine = $this->filter($line);
 
-            if (null !== $validatedLine) {
-                $this->sanitize($validatedLine);
+            if (null !== $filteredLine) {
+                $this->sanitize($filteredLine);
 
-                return $validatedLine;
+                return $filteredLine;
             } else {
                 return false;
             }
@@ -197,18 +211,50 @@ class Reader extends \SplFileObject
         return $this;
     }
 
+    protected function getRelativeOffset(int $offset): int
+    {
+        return ($this->hasHeader()) ? --$offset : $offset;
+    }
+
+    protected function validateInput(?int $from = null, ?int $to = null): void
+    {
+        if (null === $from && is_int($to)) {
+            throw new \InvalidArgumentException('The $to parameter must be null when $from is null');
+        }
+
+        if (null === $to && is_int($from)) {
+            throw new \InvalidArgumentException('The $from parameter must be null when $to is null');
+        }
+
+        if (is_int($from) && is_int($to) && $from > $to) {
+            throw new \InvalidArgumentException('The $from parameter must be less than or equal to $to');
+        }
+    }
+
     /**
      * Provides a generator to iterate over the lines of the file.
      * It reads each line one by one, applying filters and sanitizers, and yields the valid lines.
      * This is the most memory-efficient way to read large files.
      */
-    public function lines(): \Generator
+    public function lines(?int $from = null, ?int $to = null): \Generator
     {
+        $this->validateInput($from, $to);
+
+        $offset = (null !== $from) ? $this->getRelativeOffset($from) : null;
+
         while ($this->valid()) {
-            $line = $this->lineAt();
+            $line = $this->lineAt($offset);
 
             if (false !== $line) {
                 yield $line;
+            }
+
+            if (null !== $offset) {
+                ++$offset;
+
+                if ($offset >= $to) {
+                    break;
+                }
             }
         }
 

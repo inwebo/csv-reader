@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Inwebo\CSV\Reader\Tests\Iterate;
 
 use Inwebo\Csv\Reader;
+use Inwebo\CSV\Reader\Tests\Fixtures\Model\FilesTrait;
+use Inwebo\CSV\Reader\Tests\Fixtures\Model\HasReaderTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
@@ -14,11 +16,15 @@ use PHPUnit\Framework\TestCase;
 #[Group('without-header')]
 class ReadWithoutHeaderTest extends TestCase
 {
+    use FilesTrait;
+    use HasReaderTrait;
+
     private ?Reader $reader;
 
     public function setUp(): void
     {
-        $this->reader = new Reader(WITHOUT_HEADER, hasColName: false); /* @phpstan-ignore */
+        $this->reader = new Reader($this->getWithoutHeaderFile(), hasHeader: false);
+        $this->assertFalse($this->getReader()->hasHeader());
     }
 
     public function tearDown(): void
@@ -28,7 +34,7 @@ class ReadWithoutHeaderTest extends TestCase
 
     public function testLineAt(): void
     {
-        $headers = $this->reader->lineAt(1);
+        $headers = $this->getReader()->lineAt(1);
 
         $this->assertIsArray($headers);
         $this->assertEquals(2, $headers[0]);
@@ -39,14 +45,14 @@ class ReadWithoutHeaderTest extends TestCase
 
     public function testMapping(): void
     {
-        $this->reader
+        $this->getReader()
             ->mapIndexToColName(0, 'Id')
             ->mapIndexToColName(1, 'Firstname')
             ->mapIndexToColName(2, 'Lastname')
             ->mapIndexToColName(3, 'Email')
         ;
 
-        $line = $this->reader->lineAt(0);
+        $line = $this->getReader()->lineAt(0);
 
         $this->assertIsArray($line);
 
