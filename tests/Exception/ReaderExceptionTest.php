@@ -43,4 +43,9 @@ class ReaderExceptionTest extends TestCase
         $this->expectExceptionMessage('The $from parameter must be less than or equal to $to');
         $lines = $lines->current();
     }
+
+    public function testArrayCombine(): void
+    {
+
+    }
 }

@@ -151,7 +151,7 @@ class Reader extends \SplFileObject
 
     /**
      * Adds a callable function to the list of sanitizers. This function will be applied to every line read to clean or modify its data.
-     *
+     * C'est un normalizer
      * @return $this
      */
     public function addSanitizer(callable $callable): self

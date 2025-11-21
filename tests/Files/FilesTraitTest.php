@@ -32,4 +32,9 @@ class FilesTraitTest extends TestCase
     {
         $this->assertFileExists($this->getWithoutHeaderFile());
     }
+
+    public function testExampleFile(): void
+    {
+        $this->assertFileExists($this->getExampleFile());
+    }
 }

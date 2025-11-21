@@ -25,4 +25,9 @@ trait FilesTrait
     {
         return (new \SplFileObject(__DIR__.'/../without-headers.csv'))->getRealPath();
     }
+
+    public function getExampleFile(): string
+    {
+        return (new \SplFileObject(__DIR__.'/../example.csv'))->getRealPath();
+    }
 }
