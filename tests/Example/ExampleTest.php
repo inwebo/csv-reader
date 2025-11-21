@@ -31,14 +31,6 @@ class ExampleTest extends TestCase
             if (is_null($row['Salary'])) {
                 $row['Salary'] = 0;
             }
-        })
-        /**
-         * A row MUST have Salary default 0.
-         */
-        ->addSanitizer(function (array &$row) {
-            if (is_null($row['Salary'])) {
-                $row['Salary'] = 0;
-            }
 
             if (is_string($row['Salary'])) {
                 $row['Salary'] = (int) $row['Salary'];
@@ -57,7 +49,10 @@ class ExampleTest extends TestCase
             }
         })
         ->addSanitizer(function (array &$row) {
-            $row['Name'] = trim($row['Name']);
+            $row['Firstname'] = trim($row['Firstname']);
+        })
+        ->addSanitizer(function (array &$row) {
+            $row['Lastname'] = trim($row['Lastname']);
         })
         ->addSanitizer(function (array &$row) {
             $gender = strtolower($row['Gender']);
@@ -79,7 +74,8 @@ class ExampleTest extends TestCase
             $this->assertIsInt($row['Salary']);
             $this->assertIsInt($row['Age']);
             $this->assertNotNull($row['Gender']);
-            $this->assertFalse(str_starts_with($row['Name'], ' '));
+            $this->assertFalse(str_starts_with($row['Firstname'], ' '));
+            $this->assertFalse(str_starts_with($row['Lastname'], ' '));
         }
     }
 }
