@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Inwebo\CSV\Reader\Tests\Iterate;
 
+use Inwebo\Csv\Model\FiltersQueue;
+use Inwebo\Csv\Model\NormalizersQueue;
 use Inwebo\Csv\Reader;
 use Inwebo\CSV\Reader\Tests\Fixtures\Model\FilesTrait;
 use Inwebo\CSV\Reader\Tests\Fixtures\Model\HasReaderTrait;
@@ -12,6 +14,8 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Reader::class)]
+#[CoversClass(NormalizersQueue::class)]
+#[CoversClass(FiltersQueue::class)]
 #[Group('csv')]
 #[Group('with-header')]
 class ReadWithHeaderTest extends TestCase
@@ -22,8 +26,8 @@ class ReadWithHeaderTest extends TestCase
 
     public function setUp(): void
     {
-        $this->reader = new Reader($this->getWithHeaderFile(), hasHeader: true);
-        $this->assertTrue($this->getReader()->hasHeader());
+        $this->reader = new Reader($this->getWithHeaderFile(), hasHeaders: true);
+        $this->assertTrue($this->getReader()->hasHeaders());
     }
 
     public function tearDown(): void
@@ -33,16 +37,16 @@ class ReadWithHeaderTest extends TestCase
 
     public function testColName(): void
     {
-        $this->assertIsArray($this->getReader()->getHeader());
-        $this->assertEquals('Id', $this->getReader()->getHeader()[0]);
-        $this->assertEquals('Firstname', $this->getReader()->getHeader()[1]);
-        $this->assertEquals('Lastname', $this->getReader()->getHeader()[2]);
-        $this->assertEquals('Email', $this->getReader()->getHeader()[3]);
+        $this->assertIsArray($this->getReader()->getHeaders());
+        $this->assertEquals('Id', $this->getReader()->getHeaders()[0]);
+        $this->assertEquals('Firstname', $this->getReader()->getHeaders()[1]);
+        $this->assertEquals('Lastname', $this->getReader()->getHeaders()[2]);
+        $this->assertEquals('Email', $this->getReader()->getHeaders()[3]);
     }
 
     public function testAt(): void
     {
-        $headers = $this->getReader()->lineAt(0);
+        $headers = $this->getReader()->rowAt(0);
         $this->assertIsArray($headers);
         $this->assertEquals(1, $headers['Id']);
         $this->assertEquals('Charles', $headers['Firstname']);
@@ -52,56 +56,50 @@ class ReadWithHeaderTest extends TestCase
 
     public function testInvalidAt(): void
     {
-        $line = $this->getReader()->lineAt(100);
+        $row = $this->getReader()->rowAt(100);
 
-        $this->assertFalse($line);
+        $this->assertFalse($row);
     }
 
     public function testCount(): void
     {
-        $this->assertIsIterable($this->getReader()->lines());
+        $this->assertIsIterable($this->getReader()->rows());
 
-        $lines = $this->getReader()->lines();
+        $rows = $this->getReader()->rows();
 
-        $i = 0;
-
-        while ($lines->valid()) {
-            ++$i;
-            $lines->next();
-        }
-
-        $this->assertEquals(8, $i);
+        $this->assertCount(8, iterator_to_array($rows));
     }
 
-    public function testSanitizers(): void
+    public function testNormalizers(): void
     {
-        $sanitize = function (array &$line) {
-            $line['Id'] = (int) $line['Id'];
+        $normalizer = function (array &$row) {
+            $row['Id'] = (int) $row['Id'];
         };
 
-        $this->getReader()->addSanitizer($sanitize);
+        $this->getReader()->pushNormalizer($normalizer);
 
-        $line = $this->getReader()->lineAt(0);
-        $this->assertIsArray($line);
-        $this->assertEquals(1, $line['Id']);
+        $row = $this->getReader()->rowAt(0);
+        $this->assertIsArray($row);
+        $this->assertEquals(1, $row['Id']);
+        $this->assertIsInt($row['Id']);
     }
 
     public function testFilters(): void
     {
-        $sanitize = function (array &$line) {
-            $line['Id'] = (int) $line['Id'];
+        $normalizer = function (array &$row) {
+            $row['Id'] = (int) $row['Id'];
         };
 
-        $filter = function (array $line): bool {
-            return $line['Id'] % 2 === 0;
+        $filter = function (array $row): bool {
+            return $row['Id'] % 2 === 0;
         };
 
-        $this->getReader()->addSanitizer($sanitize);
-        $this->getReader()->addFilter($filter);
+        $this->getReader()->pushNormalizer($normalizer);
+        $this->getReader()->pushFilter($filter);
 
         $count = 0;
 
-        foreach ($this->getReader()->lines() as $line) {
+        foreach ($this->getReader()->rows() as $line) {
             $this->assertIsInt($line['Id']);
             $this->assertTrue($line['Id'] % 2 === 0);
 

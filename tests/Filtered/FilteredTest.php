@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Inwebo\CSV\Reader\Tests\Filtered;
 
+use Inwebo\Csv\Model\FiltersQueue;
 use Inwebo\Csv\Reader;
 use Inwebo\CSV\Reader\Tests\Fixtures\Model\FilesTrait;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(Reader::class)]
+#[CoversClass(FiltersQueue::class)]
 class FilteredTest extends TestCase
 {
     use FilesTrait;
@@ -18,7 +20,7 @@ class FilteredTest extends TestCase
     {
         $reader = new Reader($this->getFilteredFile());
 
-        $reader->addFilter(function (
+        $reader->pushFilter(function (
             /*
              * @var array{
              *     Name: string,
@@ -28,13 +30,13 @@ class FilteredTest extends TestCase
              *     Gender: string,
              * } $line
              */
-            $line,
+            $row,
         ) {
-            return 'M' === $line['Gender'];
+            return 'M' === $row['Gender'];
         });
 
         /** @var \Generator<array<string, string>> $generator */
-        $generator = $reader->lines();
+        $generator = $reader->rows();
         foreach ($generator as $line) {
             $this->assertEquals('M', $line['Gender']);
         }

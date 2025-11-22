@@ -16,36 +16,31 @@ class ReaderExceptionTest extends TestCase
 
     public function testExceptionLinesToIsNull(): void
     {
-        $reader = new Reader($this->getWithHeaderFile(), hasHeader: true);
+        $reader = new Reader($this->getWithHeaderFile(), hasHeaders: true);
 
-        $lines = $reader->lines(null, 12);
+        $rows = $reader->rows(null, 12);
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('The $to parameter must be null when $from is null');
-        $lines = $lines->current();
+        $rows = $rows->current();
     }
 
     public function testExceptionLinesFromIsNull(): void
     {
-        $reader = new Reader($this->getWithHeaderFile(), hasHeader: true);
+        $reader = new Reader($this->getWithHeaderFile(), hasHeaders: true);
 
-        $lines = $reader->lines(1, null);
+        $rows = $reader->rows(1, null);
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('The $from parameter must be null when $to is null');
-        $lines = $lines->current();
+        $rows = $rows->current();
     }
 
     public function testExceptionLinesFromIsGreaterThanTo(): void
     {
-        $reader = new Reader($this->getWithHeaderFile(), hasHeader: true);
+        $reader = new Reader($this->getWithHeaderFile(), hasHeaders: true);
 
-        $lines = $reader->lines(10, 5);
+        $rows = $reader->rows(10, 5);
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('The $from parameter must be less than or equal to $to');
-        $lines = $lines->current();
-    }
-
-    public function testArrayCombine(): void
-    {
-
+        $rows = $rows->current();
     }
 }

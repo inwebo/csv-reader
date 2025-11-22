@@ -3,14 +3,14 @@
 ![Packagist Version](https://img.shields.io/packagist/v/inwebo/csv-reader?style=flat-square)
 ![Packagist Downloads](https://img.shields.io/packagist/dd/inwebo/csv-reader?style=flat-square)
 
-This PHP class, `Inwebo\Csv\Reader`, provides a simple yet powerful way to read and process CSV files. Built as an extension of PHP's `SplFileObject`, it offers advanced features like **column name mapping**, **data filtering**, and **sanitization** to streamline your CSV processing tasks.
+This PHP class, `Inwebo\Csv\Reader`, provides a simple yet powerful way to read and process CSV files. Built as an extension of PHP's `SplFileObject`, it offers advanced features like **column name mapping**, **data filtering**, and **normalization** to streamline your CSV processing tasks.
 
 -----
 
 ### Key Features
 
 * **Column Name Mapping**: Automatically maps each line's data to an associative array using the CSV header as keys, making your code more readable and maintainable.
-* **Data Sanitization**: Apply one or more callable functions to each line to clean and format the data before it's used.
+* **Data normalization**: Apply one or more callable functions to each line to clean and format the data before it's used.
 * **Data Filtering**: Use callable functions to validate and filter out rows that don't meet your criteria.
 * **Generator-based Iteration**: Process large files efficiently using a `Generator` to iterate over lines without consuming too much memory.
 * **Inherits `SplFileObject`**: Leverage all the native features and performance benefits of `SplFileObject` for file handling.
@@ -47,9 +47,9 @@ use Inwebo\Csv\Reader;
 
 $reader = new Reader('path/to/your/file.csv');
 
-foreach ($reader->lines() as $line) {
-    // $line will be an associative array, e.g., ['column_name' => 'value']
-    print_r($line);
+foreach ($reader->rows() as $row) {
+    // $row will be an associative array, e.g., ['column_name' => 'value']
+    print_r($row);
 }
 ```
 
@@ -62,9 +62,9 @@ use Inwebo\Csv\Reader;
 
 $reader = new Reader('path/to/your/file.csv', hasColName: false);
 
-foreach ($reader->lines() as $line) {
-    // $line will be a numeric array, e.g., ['value1', 'value2']
-    print_r($line);
+foreach ($reader->rows() as $row) {
+    // $row will be a numeric array, e.g., ['value1', 'value2']
+    print_r($row);
 }
 ```
 
@@ -80,13 +80,13 @@ use Inwebo\Csv\Reader;
 $reader = new Reader('path/to/your/file.csv', hasColName: false);
 
 $reader
-    ->mapIndexToColName(0, 'id')
-    ->mapIndexToColName(1, 'name')
-    ->mapIndexToColName(2, 'email');
+    ->setHeader(0, 'id')
+    ->setHeader(1, 'name')
+    ->setHeader(2, 'email');
 
-foreach ($reader->lines() as $line) {
-    // $line will be an associative array, e.g., ['id' => '1', 'name' => 'John Doe', 'email' => 'john@example.com']
-    print_r($line);
+foreach ($reader->rows() as $row) {
+    // $row will be an associative array, e.g., ['id' => '1', 'name' => 'John Doe', 'email' => 'john@example.com']
+    print_r($row);
 }
 ```
 
@@ -106,14 +106,14 @@ use Inwebo\Csv\Reader;
 $reader = new Reader('path/to/your/file.csv');
 
 // Add a sanitizer to trim whitespace from all values
-$reader->addSanitizer(function (array &$line) {
-    $line = array_map('trim', $line);
+$reader->pushNormalizer(function (array &$row) {
+    $row = array_map('trim', $row);
 });
 
 // Add another sanitizer to convert a specific column to an integer
-$reader->addSanitizer(function (array &$line) {
-    if (isset($line['age'])) {
-        $line['age'] = (int) $line['age'];
+$reader->pushNormalizer(function (array &$row) {
+    if (isset($row['age'])) {
+        $row['age'] = (int) $row['age'];
     }
 });
 ```
@@ -128,21 +128,21 @@ use Inwebo\Csv\Reader;
 $reader = new Reader('path/to/your/file.csv');
 
 // Add a filter to only include rows where the 'status' column is 'active'
-$reader->addFilter(function (array $line) {
-    return isset($line['status']) && $line['status'] === 'active';
+$reader->pushFilter(function (array $row) {
+    return isset($row['status']) && $row['status'] === 'active';
 });
 
 // Add another filter to only include users older than 25
-$reader->addFilter(function (array $line) {
-    return isset($line['age']) && (int) $line['age'] > 25;
+$reader->pushFilter(function (array $row) {
+    return isset($row['age']) && (int) $row['age'] > 25;
 });
 ```
 
 With both sanitizers and filters in place, the processing loop becomes a clean, declarative statement of what you want to achieve.
 
 ```php
-foreach ($reader->lines() as $validAndSanitizedLine) {
+foreach ($reader->rows() as $row) {
     // This line has passed all your checks and is ready to be used
-    print_r($validAndSanitizedLine);
+    print_r($row);
 }
 ```

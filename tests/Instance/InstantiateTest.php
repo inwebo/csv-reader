@@ -31,17 +31,17 @@ class InstantiateTest extends TestCase
 
     public function testValidWithoutHeaderInstantiate(): void
     {
-        $iterator = (new Reader($this->getWithoutHeaderFile(), hasHeader: false));
+        $iterator = (new Reader($this->getWithoutHeaderFile(), hasHeaders: false));
         $this->assertInstanceOf(Reader::class, $iterator);
     }
 
     public function testEmpty(): void
     {
-        $reader = (new Reader($this->getEmptyFile(), hasHeader: false));
+        $reader = (new Reader($this->getEmptyFile(), hasHeaders: false));
         $this->assertInstanceOf(Reader::class, $reader);
 
-        $lines = iterator_to_array($reader->lines());
+        $rows = iterator_to_array($reader->rows());
 
-        $this->assertCount(0, $lines);
+        $this->assertCount(0, $rows);
     }
 }

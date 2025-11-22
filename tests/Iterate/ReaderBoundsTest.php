@@ -22,8 +22,8 @@ class ReaderBoundsTest extends TestCase
 
     public function setUp(): void
     {
-        $this->reader = new Reader($this->getWithHeaderFile(), hasHeader: true);
-        $this->assertTrue($this->getReader()->hasHeader());
+        $this->reader = new Reader($this->getWithHeaderFile(), hasHeaders: true);
+        $this->assertTrue($this->getReader()->hasHeaders());
     }
 
     public function tearDown(): void
@@ -34,21 +34,21 @@ class ReaderBoundsTest extends TestCase
     public function testBoundsWWithHeader(): void
     {
         /**
-         * @var array<int, array<string, string>> $lines
+         * @var array<int, array<string, string>> $rows
          */
-        $lines = iterator_to_array($this->getReader()->lines(1, 2));
-        $this->assertEquals('Charles', $lines[0]['Firstname']);
-        $this->assertEquals('Georges', $lines[1]['Firstname']);
+        $rows = iterator_to_array($this->getReader()->rows(1, 2));
+        $this->assertEquals('Charles', $rows[0]['Firstname']);
+        $this->assertEquals('Georges', $rows[1]['Firstname']);
     }
 
     public function testBoundsWWithoutHeader(): void
     {
-        $reader = new Reader($this->getWithHeaderFile(), hasHeader: true);
+        $reader = new Reader($this->getWithHeaderFile(), hasHeaders: true);
         /**
-         * @var array<int, array<string, string>> $lines
+         * @var array<int, array<string, string>> $rows
          */
-        $lines = iterator_to_array($reader->lines(1, 2));
-        $this->assertEquals('Charles', $lines[0]['Firstname']);
-        $this->assertEquals('Georges', $lines[1]['Firstname']);
+        $rows = iterator_to_array($reader->rows(1, 2));
+        $this->assertEquals('Charles', $rows[0]['Firstname']);
+        $this->assertEquals('Georges', $rows[1]['Firstname']);
     }
 }

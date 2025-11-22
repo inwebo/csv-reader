@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Inwebo\Csv;
 
+use Inwebo\Csv\Model\FiltersQueue;
+use Inwebo\Csv\Model\NormalizersQueue;
+
 /**
  * The Reader class extends \SplFileObject to provide a more convenient way to read and process CSV files.
  * It streamlines data handling by allowing you to process rows as associative arrays (if the file has a header),
@@ -13,21 +16,17 @@ namespace Inwebo\Csv;
 class Reader extends \SplFileObject
 {
     /** @var array<int, string> */
-    private array $header = [];
+    private array $headers = [];
 
     /**
-     * @phpstan-var (callable(array<int|string, ?string> $line):bool)[]
-     *
-     * @var array<int, callable>
+     * @var NormalizersQueue<callable(array<int|string, ?string> &$row):void>
      */
-    private array $filters = [];
+    private NormalizersQueue $normalizersQueue;
 
     /**
-     * @phpstan-var (callable(array<int|string, ?string> $line):bool)[]
-     *
-     * @var array<int, callable>
+     * @var FiltersQueue<callable(array<int|string, ?string>):bool>
      */
-    private array $sanitizers = [];
+    private FiltersQueue $filtersQueue;
 
     /**
      * Creates a new instance of the Reader class and initializes the CSV file for processing.
@@ -38,7 +37,7 @@ class Reader extends \SplFileObject
      * @param string   $mode           [optional] The mode in which to open the file. See {@see fopen} for a list of allowed modes.
      * @param bool     $useIncludePath [optional] Whether to search in the include_path for filename
      * @param resource $context        [optional] A valid context resource created with {@see stream_context_create}
-     * @param bool     $hasHeader      [optional] parameter is true, it reads the first row of the file to use as column headers for subsequent rows
+     * @param bool     $hasHeaders      [optional] parameter is true, it reads the first row of the file to use as column headers for subsequent rows
      *
      * @throws \LogicException   When the filename is a directory
      * @throws \RuntimeException When the filename cannot be opened
@@ -46,28 +45,41 @@ class Reader extends \SplFileObject
      * @see SplFileObject
      */
     public function __construct(
-        string $filename,
-        string $mode = 'r',
-        bool $useIncludePath = false,
-        mixed $context = null,
-        private readonly bool $hasHeader = true,
+        string                $filename,
+        string                $mode = 'r',
+        bool                  $useIncludePath = false,
+        mixed                 $context = null,
+        private readonly bool $hasHeaders = true,
     ) {
+        $this->normalizersQueue = new NormalizersQueue();
+        $this->filtersQueue = new FiltersQueue();
+
         parent::__construct($filename, $mode, $useIncludePath, $context);
         $this->setFlags(\SplFileObject::READ_CSV | \SplFileObject::SKIP_EMPTY | \SplFileObject::DROP_NEW_LINE | \SplFileObject::READ_AHEAD);
 
-        if (true === $this->hasHeader) {
+        if (true === $this->hasHeaders) {
             /** @var array<int, string>|false|string $colName */
             $colName = $this->current();
 
             if (false !== $colName && !is_string($colName)) {
-                $this->header = $colName;
+                $this->headers = $colName;
             }
         }
     }
 
-    public function hasHeader(): bool
+    public function getNormalizersQueue(): NormalizersQueue
     {
-        return $this->hasHeader;
+        return $this->normalizersQueue;
+    }
+
+    public function getFiltersQueue(): FiltersQueue
+    {
+        return $this->filtersQueue;
+    }
+
+    public function hasHeaders(): bool
+    {
+        return $this->hasHeaders;
     }
 
     /**
@@ -75,9 +87,9 @@ class Reader extends \SplFileObject
      *
      * @return array<int, string>
      */
-    public function getHeader(): array
+    public function getHeaders(): array
     {
-        return $this->header;
+        return $this->headers;
     }
 
     /**
@@ -85,30 +97,30 @@ class Reader extends \SplFileObject
      * This method is useful for CSV files without a header row,
      * where you want to assign column names to process the data as an associative array.
      */
-    public function mapIndexToColName(int $index, string $colName): static
+    public function setHeader(int $index, string $colName): static
     {
-        $this->header[$index] = $colName;
+        $this->headers[$index] = $colName;
 
         return $this;
     }
 
     /**
-     * Converts an indexed array of data into an associative array using the column names defined in the $colsName property.
+     * Converts an indexed array of data into an associative array using the column names defined in the $header property.
      * If an index does not have a corresponding column name, its value is omitted from the resulting associative array.
      *
-     * @param array<int, string> $line
+     * @param array<int|string, mixed> $row
      *
-     * @return array<int|string, ?string>
+     * @return array<int|string, mixed>
      */
-    protected function mapLine(array $line): array
+    protected function setHeadersRow(array $row): array
     {
-        if (empty($this->header)) {
-            return $line;
+        if (empty($this->headers)) {
+            return $row;
         }
 
         $buffer = [];
-        foreach ($this->header as $index => $colName) {
-            $buffer[$colName] = $line[$index] ?? null;
+        foreach ($this->headers as $index => $colName) {
+            $buffer[$colName] = $row[$index] ?? null;
         }
 
         return $buffer;
@@ -119,58 +131,70 @@ class Reader extends \SplFileObject
      * You can specify a line number with the $offset or read the current line if $offset is null.
      * It applies all defined sanitizers and filters before returning the line.
      *
-     * @return array<int|string, ?string>|false false at EOF
+     * @return array<int|string, mixed>|false false at EOF
      */
-    public function lineAt(?int $offset = null): array|false
+    public function rowAt(?int $offset = null): array|false
     {
         if (null !== $offset) {
             $this->seek($offset);
         }
 
-        /** @var array<int, string>|false $line */
-        $line = ($this->hasHeader) ? $this->fgetcsv(escape: '\\') : $this->current();
-        if (false !== $line) {
-            $line = ($this->hasHeader) ?
-                array_combine($this->header, $line) :
-                $this->mapLine($line)
+        /** @var array<int|string, mixed>|false $row */
+        $row = ($this->hasHeaders) ? $this->fgetcsv(escape: '\\') : $this->current();
+        if (false !== $row) {
+            $row = ($this->hasHeaders) ?
+                array_combine($this->headers, $row) :
+                $this->setHeadersRow($row)
             ;
 
-            $filteredLine = $this->filter($line);
+            $filteredLine = $this->filter($row);
 
             if (null !== $filteredLine) {
-                $this->sanitize($filteredLine);
+                $this->normalize($filteredLine);
 
                 return $filteredLine;
             } else {
                 return false;
             }
-        } else {
-            return false;
         }
+
+        return $row;
     }
 
-    /**
-     * Adds a callable function to the list of sanitizers. This function will be applied to every line read to clean or modify its data.
-     * C'est un normalizer
-     * @return $this
-     */
-    public function addSanitizer(callable $callable): self
+    public function clearNormalizers(): self
     {
-        $this->sanitizers[] = $callable;
+        $this->normalizersQueue = new NormalizersQueue();
 
         return $this;
     }
 
     /**
-     * Applies all registered sanitizer functions to the given line. This method is used internally by lineAt and modifies the $line array in place.
+     * Adds a callable function to the list of sanitizers. This function will be applied to every line read to clean or modify its data.
+     * C'est un normalizer.
      *
-     * @param array<int|string, ?string> $line
+     * @param callable(array<int|string, ?string> &$row):void $callable
+     *
+     * @return $this
      */
-    protected function sanitize(array &$line): void
+    public function pushNormalizer(callable $callable): self
     {
-        if (false === empty($this->sanitizers)) {
-            foreach ($this->sanitizers as $sanitizer) {
-                $sanitizer($line);
+        $this->normalizersQueue->push($callable);
+
+        return $this;
+    }
+
+    /**
+     * Applies all registered sanitizer functions to the given line. This method is used internally by lineAt and modifies the $row array in place.
+     *
+     * @param array<int|string, mixed> $row
+     */
+    protected function normalize(array &$row): void
+    {
+        if ($this->normalizersQueue->count() > 0) {
+            $this->normalizersQueue->rewind();
+            while ($this->normalizersQueue->valid()) {
+                $this->normalizersQueue->normalize($row);
+                $this->normalizersQueue->next();
             }
         }
     }
@@ -179,41 +203,51 @@ class Reader extends \SplFileObject
      * Applies all registered filter functions to the given line.
      * If any of the filter functions returns false, the line is considered invalid, and the method returns null.
      *
-     * @param array<int|string, ?string> $line
+     * @param array<int|string, mixed> $row
      *
-     * @return array<int|string, ?string>|null
+     * @return array<int|string, mixed>|null
      */
-    protected function filter(array $line): ?array
+    protected function filter(array $row): ?array
     {
         $isValid = true;
-
-        if (false === empty($this->filters)) {
-            foreach ($this->filters as $filter) {
-                $isValid &= $filter($line);
+        if ($this->filtersQueue->count() > 0) {
+            $this->filtersQueue->rewind();
+            while ($this->filtersQueue->valid()) {
+                $isValid &= $this->filtersQueue->filter($row);
+                $this->filtersQueue->next();
             }
         }
 
         if ($isValid) {
-            return $line;
+            return $row;
         }
 
         return null;
     }
 
+    public function clearFilters(): self
+    {
+        $this->filtersQueue = new FiltersQueue();
+
+        return $this;
+    }
+
     /**
      * Adds a callable function to the list of filters.
      * This function will be applied to every line to determine if it should be included in the results.
+     *
+     * @param callable(array<int|string, mixed> $row):bool $callable
      */
-    public function addFilter(callable $callable): self
+    public function pushFilter(callable $callable): self
     {
-        $this->filters[] = $callable;
+        $this->filtersQueue->push($callable);
 
         return $this;
     }
 
     protected function getRelativeOffset(int $offset): int
     {
-        return ($this->hasHeader()) ? --$offset : $offset;
+        return ($this->hasHeaders()) ? --$offset : $offset;
     }
 
     protected function validateInput(?int $from = null, ?int $to = null): void
@@ -235,18 +269,20 @@ class Reader extends \SplFileObject
      * Provides a generator to iterate over the lines of the file.
      * It reads each line one by one, applying filters and sanitizers, and yields the valid lines.
      * This is the most memory-efficient way to read large files.
+     *
+     * @return \Generator<array<int|string, mixed>>
      */
-    public function lines(?int $from = null, ?int $to = null): \Generator
+    public function rows(?int $from = null, ?int $to = null): \Generator
     {
         $this->validateInput($from, $to);
 
         $offset = (null !== $from) ? $this->getRelativeOffset($from) : null;
 
         while ($this->valid()) {
-            $line = $this->lineAt($offset);
+            $row = $this->rowAt($offset);
 
-            if (false !== $line) {
-                yield $line;
+            if (false !== $row) {
+                yield $row;
             }
 
             if (null !== $offset) {

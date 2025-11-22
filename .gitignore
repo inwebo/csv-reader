@@ -3,3 +3,4 @@ vendor
 .phpunit.cache
 .php-cs-fixer.cache
 phpmd-report.html
+html-coverage
