@@ -204,8 +204,8 @@ class Reader extends \SplFileObject
      */
     protected function normalize(array &$row): void
     {
-        $isEmpty = $this->normalizersQueue->isEmpty();
-        if (false !== $isEmpty) {
+        $isEmpty = $this->normalizersQueue->count() > 0;
+        if (true === $isEmpty) {
             $this->normalizersQueue->rewind();
             while ($this->normalizersQueue->valid()) {
                 $this->normalizersQueue->normalize($row);
@@ -225,8 +225,8 @@ class Reader extends \SplFileObject
     protected function filter(array $row): ?array
     {
         $isValid = true;
-        $isEmpty = $this->filtersQueue->isEmpty();
-        if (false !== $isEmpty) {
+        $isEmpty = $this->filtersQueue->count() > 0;
+        if (true === $isEmpty) {
             $this->filtersQueue->rewind();
             while ($this->filtersQueue->valid()) {
                 $isValid &= $this->filtersQueue->filter($row);
