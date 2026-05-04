@@ -1,4 +1,6 @@
 # CHANGELOG
+## 1.0.3
+* Update back dependencies
 ## 1.0.2
 * Update back dependencies
 * Fix composer version
